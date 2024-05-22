@@ -1,18 +1,33 @@
-
-
+require('dotenv').config();
 const express = require("express");
+const morgan = require("morgan");
+const cors = require("cors");
+const routes = require("./routes");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const models = require("./models");
-
+const app = express();
 const router = express.Router();
+// Middleware
+app.use(morgan("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cors({
+    origin: "http://localhost:4200",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+}));
+
 
 // Signup route handler
-router.post("/signup", async (req, res) => {
+app.post("/signup", async (req, res) => {
     try {
-        const { username, email, password, firstname, lastname, dateOfBirth, country } = req.body;
+
+
+
+        const { username, password, firstname, lastname, dateOfBirth, country,gender } = req.body;
         console.log("Signup request body:", req.body);
-        console.log("Extracted fields:", { username, email, password, firstname, lastname, dateOfBirth, country }); // Log extracted fields
+        console.log("Extracted fields:", { username, password, firstname, lastname, dateOfBirth, country ,gender}); // Log extracted fields
 
         const dateOfBirthDate = new Date(dateOfBirth);
 
@@ -24,12 +39,12 @@ router.post("/signup", async (req, res) => {
         const newUser = await models.User.create({
             data: {
                 username,
-                email,
                 password: hashedPassword,
                 firstname,
                 lastname,
                 dateOfBirth: dateOfBirthDate,
                 country,
+                gender
             },
         });
         res.status(201).json({ message: "User created successfully" });
@@ -39,10 +54,16 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-// Signin route
-router.post("/signin", async (req, res) => {
+app.post("/signin", async (req, res) => {
     try {
+        console.log("Request body:", req.body);
         const { username, password } = req.body;
+        console.log("Received username:", username);
+        console.log("Received password:", password);
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required'});
+        }
 
         const user = await models.User.findUnique({
             where: {
@@ -66,7 +87,7 @@ router.post("/signin", async (req, res) => {
     }
 });
 
-router.post("/attendance", async (req, res) => {
+app.post("/attendance", async (req, res) => {
     try {
         const { userId } = req.body;
         // Save attendance record to database
@@ -84,5 +105,9 @@ router.post("/attendance", async (req, res) => {
     }
 });
 
+// Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
 
-module.exports = router;
